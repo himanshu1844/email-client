@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import {NextRequest} from 'next/server';
-import axios from 'axios';
-export const  GET=async(requset:NextRequest) {
+// import axios from 'axios';
+export const GET = async (requset: NextRequest) => {
     const status = requset.nextUrl.searchParams.get('status');
     if (status !== 'success') {
         return NextResponse.json({ error: 'Authorization failed' }, { status: 400 });
