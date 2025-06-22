@@ -9,5 +9,5 @@ export default function Home() {
       window.location.href = authURL;
     }
    }}>LINK ACCOUNT</button>
-  );
+  );        
 }
