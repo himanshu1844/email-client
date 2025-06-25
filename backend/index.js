@@ -1,18 +1,39 @@
 const express = require('express')
+const clerkWebhookHandler = require("./controllers/clerkwebhookhandler");
+
+const googleerouter=require("./google/googlerouter");
+const session = require('express-session')
+const cors = require('cors');
 const app = express()
 const port = 8000
 
-
-let clerkWebhookHandler;
-try {
-  clerkWebhookHandler = require("./controllers/clerkwebhookhandler");
-} catch (error) {
-  console.error('Failed to load clerkWebhookHandler:', error);
-
-}
+require('dotenv').config();
 
 
-app.use(express.json()); 
+
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cors({
+    
+    origin: ['http://localhost:3000', 'https://email-client-nu-taupe.vercel.app'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'] 
+}));
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'a_very_secret_key_for_production', 
+    resave: false, 
+    saveUninitialized: false, 
+    cookie: {
+        secure: false,
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 
+    }
+}));
+
 
 
 app.get('/', (req, res) => {
@@ -32,10 +53,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-if (clerkWebhookHandler) {
-  app.post("/api/clerk/webhooks", clerkWebhookHandler);
-}
 
+app.post("/api/clerk/webhooks", clerkWebhookHandler);
+
+app.use("/api/google", googleerouter);
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

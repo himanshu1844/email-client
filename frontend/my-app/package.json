@@ -11,6 +11,8 @@
   "dependencies": {
     "@clerk/nextjs": "^6.22.0",
     "axios": "^1.10.0",
+    "crypto": "^1.0.1",
+    "googleapis": "^150.0.1",
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
