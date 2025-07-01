@@ -32,7 +32,7 @@ model account {
   name         String
   historyId    String?
   threads        Thread[]
-  emailAddresses EmailAddress[]
+ 
 
   User         User   @relation(fields: [userId], references: [id])
 }
@@ -43,7 +43,7 @@ model Thread {
     lastMessageDate DateTime
     participantIds  String[]
     accountId       String
-    account         account  @relation(fields: [id], references: [id])
+    account         account  @relation(fields: [accountId], references: [id])
 
     done Boolean @default(false)
 
@@ -77,12 +77,13 @@ model Email {
     sysClassifications   String[]
     sensitivity          Sensitivity           @default(normal)
     meetingMessageMethod MeetingMessageMethod?
-    from                 EmailAddress          @relation("FromEmail", fields: [fromId], references: [id])
-    fromId               String
-    to                   EmailAddress[]        @relation("ToEmails")
-    cc                   EmailAddress[]        @relation("CcEmails")
-    bcc                  EmailAddress[]        @relation("BccEmails")
-    replyTo              EmailAddress[]        @relation("ReplyToEmails")
+    from                 String         
+   
+    to                   String[]           
+    cc                    String[]
+
+    bcc                  String[]
+    replyTo             String[]
     hasAttachments       Boolean
     body                 String?
     bodySnippet          String?
@@ -108,22 +109,7 @@ enum EmailLabel {
     draft
 }
 
-model EmailAddress {
-    id            String  @id @default(cuid())
-    name          String?
-    address       String
-    raw           String?
-    sentEmails    Email[] @relation("FromEmail")
-    receivedTo    Email[] @relation("ToEmails")
-    receivedCc    Email[] @relation("CcEmails")
-    receivedBcc   Email[] @relation("BccEmails")
-    replyToEmails Email[] @relation("ReplyToEmails")
 
-    accountId String
-    account   account @relation(fields: [id], references: [id])
-
-    @@unique([accountId, address])
-}
 
 
 model EmailAttachment {

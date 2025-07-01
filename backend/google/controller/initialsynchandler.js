@@ -2,6 +2,7 @@ const { google } = require('googleapis');
 const url = require('url');
 const prisma = require('../../db/db.js'); 
 const axios = require("axios");
+const  savetodb  = require('./sync_database.js'); 
 
 const getoauth2Cilent = async (accountId, userId) => {
     const account = await prisma.account.findFirst({
@@ -25,10 +26,10 @@ const getoauth2Cilent = async (accountId, userId) => {
 
 const batchGetMessages = async (oauth2Client, messageIds, email) => {
     try {
-        // Get access token for batch request
+  
         const accessToken = oauth2Client.credentials.access_token;
         
-        // Create batch request body
+    
         let batchBody = '';
         const boundary = 'batch_';
         console.log(`[${email}] Using boundary: ${boundary}`);
@@ -43,7 +44,7 @@ const batchGetMessages = async (oauth2Client, messageIds, email) => {
         
         batchBody += `--${boundary}--\r\n`;
         
-        // Send batch request
+        
         const response = await axios.post('https://gmail.googleapis.com/batch/gmail/v1', batchBody, {
             headers: {
                 'Content-Type': `multipart/mixed; boundary=${boundary}`,
@@ -51,7 +52,7 @@ const batchGetMessages = async (oauth2Client, messageIds, email) => {
             }
         });
         
-        // Parse batch response
+       
         const messagesToSave = [];
         const responseData = response.data;
         if(responseData) {
@@ -59,25 +60,25 @@ const batchGetMessages = async (oauth2Client, messageIds, email) => {
         }
         // console.log(responseData);
         
-        // Split response by boundary
+    
         const parts = responseData.split(`--${boundary}`);
         console.log(`[${email}] Split response into ${parts.length} parts.`);
         
         parts.forEach((part, index) => {
             if (part.includes('HTTP/1.1 200 OK')) {
                 try {
-                    // Extract JSON from the response part
+                    
                     const jsonStart = part.indexOf('{');
                     
                     const jsonEnd = part.lastIndexOf('}');
 
                     if(jsonStart !== -1 && jsonEnd!==-1 && jsonEnd>jsonStart) {
                         const jsonString = part.substring(jsonStart,jsonEnd+1).trim();
-                        console.log(`[${email}] JSON string for part ${index}:`, jsonString);
+                        // console.log(`[${email}] JSON string for part ${index}:`, jsonString);
                         try {
 
                             const messageData = JSON.parse(jsonString);
-                            console.log(`[${email}] Parsed message data for part ${index}:`, messageData);
+                            // console.log(`[${email}] Parsed message data for part ${index}:`, messageData);
                             if(messageData && messageData.id) {
                                 messagesToSave.push(messageData);
                             }
@@ -131,12 +132,12 @@ const initialsynchandler = async (req, res) => {
         let latestOverallHistoryId = null;
         let totalmessage = 0;
         
-        // do {
+        do {
             const lisres = await gmail.users.messages.list({
                 userId: 'me',
-                maxResults: 2,
+                maxResults: 10,
                 pageToken: pagetoken,
-                q: 'newer_than:1d'
+                q: 'newer_than:3d'
             });
             
             const messagelist = lisres.data.messages || [];
@@ -148,19 +149,18 @@ const initialsynchandler = async (req, res) => {
                 // Use batch request to get messages
                 const messagesToSave = await batchGetMessages(oauth2Client, messageIds, email);
                 
-                for (const msg of messagesToSave) {
-                    if (msg && msg.id) {
-                        // console.log("Message", JSON.stringify(msg, null, 2));
-                        // await savetodb(msg, email);
-                        totalmessage++;
-                    }
-                }
+            
+                    // console.log("Message", JSON.stringify(msg, null, 2));
+                    await savetodb(messagesToSave, accountId);
+                    
+                    
+                
             }
             
             pagetoken = lisres.data.nextPageToken;
             console.log(`[${email}] Next page token: ${pagetoken}`);
             
-        // } while (pagetoken);
+        } while (pagetoken);
         
         try {
             const historyRes = await gmail.users.history.list({
